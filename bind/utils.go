@@ -215,7 +215,7 @@ else:
 		"-L" + raw.LibDir,
 		"-l" + raw.LibPy,
 		raw.ShFlags,
-	}, "")
+	}, " ")
 
 	return cfg, nil
 }
