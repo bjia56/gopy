@@ -178,6 +178,9 @@ func runBuild(mode bind.BuildMode, cfg *BuildCfg) error {
 		}
 		modlib := "_" + cfg.Name + extext
 
+		env := os.Environ()
+		env = append(env, compilerEnv(cfg, pycfg)...)
+
 		// build the go shared library upfront to generate the header
 		// needed by our generated cpython code
 		args := []string{"build", "-mod=mod", "-buildmode=c-shared"}
@@ -194,6 +197,7 @@ func runBuild(mode bind.BuildMode, cfg *BuildCfg) error {
 		args = append(args, "-o", buildLib, ".")
 		fmt.Printf("go %v\n", strings.Join(args, " "))
 		cmd = exec.Command("go", args...)
+		cmd.Env = env
 		cmdout, err = cmd.CombinedOutput()
 		if err != nil {
 			fmt.Printf("cmd had error: %v  output:\n%v\n", err, string(cmdout))
@@ -207,6 +211,7 @@ func runBuild(mode bind.BuildMode, cfg *BuildCfg) error {
 		// generate c code
 		fmt.Printf("%v build.py\n", cfg.VM)
 		cmd = exec.Command(cfg.VM, "build.py")
+		cmd.Env = env
 		cmdout, err = cmd.CombinedOutput()
 		if err != nil {
 			fmt.Printf("cmd had error: %v  output:\no%v\n", err, string(cmdout))
@@ -216,57 +221,13 @@ func runBuild(mode bind.BuildMode, cfg *BuildCfg) error {
 		if bind.WindowsOS {
 			fmt.Printf("Doing windows sed hack to fix declspec for PyInit\n")
 			cmd = exec.Command("sed", "-i", "s/ PyInit_/ __declspec(dllexport) PyInit_/g", cfg.Name+".c")
+			cmd.Env = env
 			cmdout, err = cmd.CombinedOutput()
 			if err != nil {
 				fmt.Printf("cmd had error: %v  output:\no%v\n", err, string(cmdout))
 				return err
 			}
 		}
-
-		cflags := strings.Fields(strings.TrimSpace(pycfg.CFlags))
-		cflags = append(cflags, "-fPIC", "-Ofast")
-		if include, exists := os.LookupEnv("GOPY_INCLUDE"); exists {
-			cflags = append(cflags, "-I"+filepath.ToSlash(include))
-		}
-		var ldflags []string
-		if cfg.DynamicLinking {
-			ldflags = strings.Fields(strings.TrimSpace(pycfg.LdDynamicFlags))
-		} else {
-			ldflags = strings.Fields(strings.TrimSpace(pycfg.LdFlags))
-		}
-		if !cfg.Symbols {
-			ldflags = append(ldflags, "-s")
-		}
-		if lib, exists := os.LookupEnv("GOPY_LIBDIR"); exists {
-			ldflags = append(ldflags, "-L"+filepath.ToSlash(lib))
-		}
-		if libname, exists := os.LookupEnv("GOPY_PYLIB"); exists {
-			ldflags = append(ldflags, "-l"+filepath.ToSlash(libname))
-		}
-
-		removeEmpty := func(src []string) []string {
-			o := make([]string, 0, len(src))
-			for _, v := range src {
-				if v == "" {
-					continue
-				}
-				o = append(o, v)
-			}
-			return o
-		}
-
-		cflags = removeEmpty(cflags)
-		ldflags = removeEmpty(ldflags)
-
-		cflagsEnv := fmt.Sprintf("CGO_CFLAGS=%s", strings.Join(cflags, " "))
-		ldflagsEnv := fmt.Sprintf("CGO_LDFLAGS=%s", strings.Join(ldflags, " "))
-
-		env := os.Environ()
-		env = append(env, cflagsEnv)
-		env = append(env, ldflagsEnv)
-
-		fmt.Println(cflagsEnv)
-		fmt.Println(ldflagsEnv)
 
 		// build extension with go + c
 		fmt.Printf("go %v\n", strings.Join(args, " "))
@@ -280,4 +241,53 @@ func runBuild(mode bind.BuildMode, cfg *BuildCfg) error {
 	}
 
 	return err
+}
+
+func compilerEnv(cfg *BuildCfg, pycfg bind.PyConfig) []string {
+	cflags := strings.Fields(strings.TrimSpace(pycfg.CFlags))
+	cflags = append(cflags, "-fPIC", "-Ofast")
+	if include, exists := os.LookupEnv("GOPY_INCLUDE"); exists {
+		cflags = append(cflags, "-I"+filepath.ToSlash(include))
+	}
+	var ldflags []string
+	if cfg.DynamicLinking {
+		ldflags = strings.Fields(strings.TrimSpace(pycfg.LdDynamicFlags))
+	} else {
+		ldflags = strings.Fields(strings.TrimSpace(pycfg.LdFlags))
+	}
+	if !cfg.Symbols {
+		ldflags = append(ldflags, "-s")
+	}
+	if lib, exists := os.LookupEnv("GOPY_LIBDIR"); exists {
+		ldflags = append(ldflags, "-L"+filepath.ToSlash(lib))
+	}
+	if libname, exists := os.LookupEnv("GOPY_PYLIB"); exists {
+		ldflags = append(ldflags, "-l"+filepath.ToSlash(libname))
+	}
+
+	removeEmpty := func(src []string) []string {
+		o := make([]string, 0, len(src))
+		for _, v := range src {
+			if v == "" {
+				continue
+			}
+			o = append(o, v)
+		}
+		return o
+	}
+
+	cflags = removeEmpty(cflags)
+	ldflags = removeEmpty(ldflags)
+
+	cflagsEnv := fmt.Sprintf("CGO_CFLAGS=%s", strings.Join(cflags, " "))
+	ldflagsEnv := fmt.Sprintf("CGO_LDFLAGS=%s", strings.Join(ldflags, " "))
+
+	env := []string{}
+	env = append(env, cflagsEnv)
+	env = append(env, ldflagsEnv)
+
+	fmt.Println(cflagsEnv)
+	fmt.Println(ldflagsEnv)
+
+	return env
 }
