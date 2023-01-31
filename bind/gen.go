@@ -89,7 +89,7 @@ static inline void gopy_err_handle() {
 */
 import "C"
 import (
-	"github.com/bjia56/gopy/gopyh" // handler
+	"github.com/go-python/gopy/gopyh" // handler
 	%[6]s
 )
 
