@@ -7,7 +7,7 @@ package funcs
 import (
 	"fmt"
 
-	"github.com/bjia56/gopy/_examples/cpkg"
+	"github.com/go-python/gopy/_examples/cpkg"
 )
 
 type FunStruct struct {

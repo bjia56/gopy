@@ -8,8 +8,8 @@ package hi
 import (
 	"fmt"
 
-	"github.com/bjia56/gopy/_examples/cpkg"
-	"github.com/bjia56/gopy/_examples/structs"
+	"github.com/go-python/gopy/_examples/cpkg"
+	"github.com/go-python/gopy/_examples/structs"
 )
 
 const (

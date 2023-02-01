@@ -1,4 +1,4 @@
-module github.com/bjia56/gopy
+module github.com/go-python/gopy
 
 go 1.18
 
