@@ -23,17 +23,14 @@ func getPythonVersion(vm string) (int, error) {
 		)
 	}
 
-	c := exec.Command(py, "-c", "import sys; print(sys.version_info.major)")
-	out, err := c.Output()
+	out, err := exec.Command(py, "-c", "import sys; print(sys.version_info.major)").Output()
 	if err != nil {
-		fmt.Println(string(out))
-		fmt.Println(string(err.(*exec.ExitError).Stderr))
 		return 0, errors.Wrapf(err, "gopy: error retrieving python version")
 	}
 
 	vers, err := strconv.Atoi(strings.TrimSpace(string(out)))
 	if err != nil {
-		return 0, errors.Wrapf(err, "gopy: error parsing python version")
+		return 0, errors.Wrapf(err, "gopy: error retrieving python version")
 	}
 
 	return vers, nil
