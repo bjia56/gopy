@@ -216,7 +216,11 @@ else:
 		raw.ShLibs,
 		raw.SysLibs,
 	}, " ")
-	cfg.LdDynamicFlags = raw.ShFlags
+	cfg.LdDynamicFlags = strings.Join([]string{
+		"-L" + raw.LibDir,
+		"-l" + raw.LibPy,
+		raw.ShFlags
+	}, " ")
 
 	return cfg, nil
 }
