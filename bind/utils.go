@@ -219,7 +219,7 @@ else:
 	cfg.LdDynamicFlags = strings.Join([]string{
 		"-L" + raw.LibDir,
 		"-l" + raw.LibPy,
-		raw.ShFlags
+		raw.ShFlags,
 	}, " ")
 
 	return cfg, nil
